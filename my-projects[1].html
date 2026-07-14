@@ -1,0 +1,1025 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>My Projects</title>
+
+<!--
+  ============================================================
+  MY PROJECTS — self-contained single-file site
+  ============================================================
+  HOW THIS WORKS
+  - All project data lives in the DATA constant below (search
+    for "const DATA ="). That's what every visitor sees.
+  - Clicking the (+) button in the bottom-right opens an admin
+    panel. Anything you add there only lives in THIS browser
+    tab's memory — it will disappear on refresh and nobody else
+    will see it.
+  - To make additions permanent and visible to visitors:
+      1. Add your link/document in the admin panel.
+      2. Click "Copy JSON" at the bottom of the panel.
+      3. Paste it over the DATA constant in this file.
+      4. Commit + push the file to your GitHub Pages repo.
+  - Documents (PDFs, etc.) need to actually exist in your repo
+    (or somewhere public) — this page just links to them. Use a
+    relative path like "docs/myfile.pdf" or a full URL.
+  - Link previews are fetched from api.microlink.io at the
+    moment you add a link, then stored as plain data — so the
+    published site never depends on that API at load time.
+  ============================================================
+-->
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+<style>
+  :root{
+    --bg: #0a0d12;
+    --panel: #12161d;
+    --panel-2: #171d26;
+    --border: #232b36;
+    --text: #e7ebf0;
+    --muted: #7c8896;
+    --cyan: #4fd8e8;
+    --cyan-dim: #4fd8e833;
+    --gold: #e8b34f;
+    --danger: #e8615f;
+    --radius: 10px;
+  }
+
+  *{ box-sizing: border-box; }
+
+  html, body{
+    margin:0; padding:0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+  }
+
+  body{
+    background-image:
+      repeating-linear-gradient(0deg, transparent, transparent 39px, #ffffff06 39px, #ffffff06 40px),
+      repeating-linear-gradient(90deg, transparent, transparent 39px, #ffffff06 39px, #ffffff06 40px);
+    background-attachment: fixed;
+  }
+
+  a{ color: inherit; }
+
+  ::selection{ background: var(--cyan-dim); color: var(--text); }
+
+  :focus-visible{
+    outline: 2px solid var(--cyan);
+    outline-offset: 2px;
+    border-radius: 4px;
+  }
+
+  .mono{ font-family: 'JetBrains Mono', monospace; }
+
+  /* ---------------- HERO ---------------- */
+
+  header.hero{
+    position: relative;
+    padding: 76px 24px 44px;
+    text-align: center;
+    overflow: hidden;
+    border-bottom: 1px solid var(--border);
+  }
+
+  header.hero::after{
+    content:"";
+    position:absolute; left:0; right:0; top:0;
+    height:2px;
+    background: linear-gradient(90deg, transparent, var(--cyan), transparent);
+    animation: sweep 2.2s ease-out 1;
+    opacity: 0.9;
+  }
+
+  @keyframes sweep{
+    from{ transform: translateY(-4px); opacity:0; }
+    15%{ opacity:1; }
+    to{ transform: translateY(520px); opacity:0; }
+  }
+
+  .status-line{
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    color: var(--cyan);
+    text-transform: uppercase;
+    margin-bottom: 18px;
+  }
+
+  .status-dot{
+    display:inline-block;
+    width:6px; height:6px;
+    border-radius:50%;
+    background: var(--cyan);
+    box-shadow: 0 0 8px 1px var(--cyan);
+    margin-right: 8px;
+    animation: pulse 2.4s ease-in-out infinite;
+  }
+
+  @keyframes pulse{
+    0%,100%{ opacity:1; }
+    50%{ opacity:0.35; }
+  }
+
+  h1.title{
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    font-size: clamp(2.4rem, 6vw, 4.2rem);
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+  }
+
+  p.subtitle{
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--gold);
+    font-size: clamp(0.78rem, 1.6vw, 1rem);
+    letter-spacing: 0.06em;
+    margin: 0;
+    opacity: 0.9;
+  }
+
+  /* ---------------- FILTER TABS ---------------- */
+
+  .filters{
+    display:flex; justify-content:center; gap: 8px;
+    padding: 22px 24px 0;
+  }
+
+  .filter-btn{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 7px 14px;
+    border-radius: 999px;
+    cursor: pointer;
+    transition: all .15s ease;
+  }
+  .filter-btn:hover{ color: var(--text); border-color: #3a4452; }
+  .filter-btn.active{
+    color: var(--cyan);
+    border-color: var(--cyan);
+    box-shadow: 0 0 0 1px var(--cyan-dim) inset;
+  }
+
+  /* ---------------- GRID ---------------- */
+
+  main{
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 36px 24px 120px;
+  }
+
+  .grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 22px;
+  }
+
+  .empty-state{
+    text-align:center;
+    color: var(--muted);
+    padding: 90px 20px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 13px;
+    letter-spacing: 0.03em;
+  }
+  .empty-state .arrow{
+    display:block;
+    margin-top: 14px;
+    font-size: 22px;
+    color: var(--cyan);
+    animation: bob 1.6s ease-in-out infinite;
+  }
+  @keyframes bob{
+    0%,100%{ transform: translateY(0); }
+    50%{ transform: translateY(6px); }
+  }
+
+  .card{
+    position: relative;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    display:flex;
+    flex-direction: column;
+    transition: transform .18s ease, border-color .18s ease;
+  }
+  .card:hover{
+    transform: translateY(-3px);
+    border-color: #2b3542;
+  }
+
+  .bracket{
+    position:absolute;
+    width:16px; height:16px;
+    opacity:0;
+    transition: opacity .18s ease, transform .18s ease;
+    pointer-events:none;
+  }
+  .bracket.tl{ top:8px; left:8px; border-top:2px solid var(--cyan); border-left:2px solid var(--cyan); transform: translate(4px,4px); }
+  .bracket.tr{ top:8px; right:8px; border-top:2px solid var(--cyan); border-right:2px solid var(--cyan); transform: translate(-4px,4px); }
+  .bracket.bl{ bottom:8px; left:8px; border-bottom:2px solid var(--cyan); border-left:2px solid var(--cyan); transform: translate(4px,-4px); }
+  .bracket.br{ bottom:8px; right:8px; border-bottom:2px solid var(--cyan); border-right:2px solid var(--cyan); transform: translate(-4px,-4px); }
+  .card:hover .bracket{ opacity: 1; transform: translate(0,0); }
+
+  .thumb{
+    width:100%; aspect-ratio: 16/9;
+    background: var(--panel-2);
+    display:flex; align-items:center; justify-content:center;
+    color: var(--muted); font-size: 28px;
+    border-bottom: 1px solid var(--border);
+    overflow: hidden;
+  }
+  .thumb img{
+    width:100%; height:100%;
+    object-fit: cover; object-position: center;
+    display:block;
+  }
+
+  .doc-badge{
+    width:56px; height:56px;
+    border-radius:8px;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    display:flex; align-items:center; justify-content:center;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px; font-weight:600;
+    color: var(--gold);
+    letter-spacing: 0.02em;
+    margin: 18px 0 0 18px;
+  }
+
+  .card-body{
+    padding: 16px 18px 18px;
+    display:flex; flex-direction:column; gap:6px; flex:1;
+  }
+
+  .eyebrow{
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+  .eyebrow.link{ color: var(--cyan); }
+  .eyebrow.document{ color: var(--gold); }
+
+  .card h3{
+    font-family: 'Space Grotesk', sans-serif;
+    font-size: 1.05rem;
+    margin: 2px 0 0;
+    font-weight: 600;
+  }
+
+  .card p.desc{
+    color: var(--muted);
+    font-size: 0.86rem;
+    line-height:1.45;
+    margin: 2px 0 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .card .meta{
+    margin-top: auto;
+    padding-top: 10px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11px;
+    color: var(--muted);
+    display:flex; align-items:center; justify-content:space-between;
+  }
+
+  .open-link{
+    color: var(--text);
+    text-decoration:none;
+    display:block;
+  }
+
+  .delete-btn{
+    background:none; border:none; color: var(--danger);
+    font-family:'JetBrains Mono',monospace; font-size:10px;
+    cursor:pointer; opacity:0.7; letter-spacing:0.05em;
+  }
+  .delete-btn:hover{ opacity:1; }
+
+  /* ---------------- FAB ---------------- */
+
+  .fab{
+    position: fixed;
+    bottom: 26px; right: 26px;
+    width: 56px; height: 56px;
+    border-radius: 50%;
+    background: var(--cyan);
+    color: #06090c;
+    border:none;
+    font-size: 26px;
+    font-weight: 700;
+    cursor:pointer;
+    box-shadow: 0 0 0 1px #0a0d12, 0 6px 18px #0009, 0 0 20px var(--cyan-dim);
+    z-index: 20;
+    transition: transform .15s ease;
+  }
+  .fab:hover{ transform: scale(1.06); }
+  .fab.hidden{ display:none; }
+
+  /* ---------------- ADMIN PANEL ---------------- */
+
+  .overlay{
+    position: fixed; inset:0;
+    background: #00000080;
+    backdrop-filter: blur(2px);
+    opacity:0; pointer-events:none;
+    transition: opacity .18s ease;
+    z-index: 30;
+  }
+  .overlay.open{ opacity:1; pointer-events:auto; }
+
+  .panel{
+    position: fixed; top:0; right:0; bottom:0;
+    width: min(420px, 100%);
+    background: var(--panel);
+    border-left: 1px solid var(--border);
+    transform: translateX(100%);
+    transition: transform .22s ease;
+    z-index: 31;
+    display:flex; flex-direction:column;
+    overflow-y:auto;
+  }
+  .panel.open{ transform: translateX(0); }
+
+  .panel-head{
+    padding: 20px 20px 14px;
+    border-bottom: 1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between;
+    position: sticky; top:0; background: var(--panel);
+  }
+  .panel-head h2{
+    font-family:'Space Grotesk', sans-serif;
+    font-size: 1.1rem; margin:0;
+  }
+  .panel-close{
+    background:none; border:none; color:var(--muted);
+    font-size:20px; cursor:pointer;
+  }
+  .panel-close:hover{ color: var(--text); }
+
+  .panel-body{ padding: 18px 20px 30px; display:flex; flex-direction:column; gap:16px; }
+
+  .type-toggle{ display:flex; gap:8px; }
+  .type-toggle button{
+    flex:1;
+    padding: 9px 0;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px; letter-spacing:0.08em; text-transform:uppercase;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    border-radius: 6px;
+    cursor:pointer;
+  }
+  .type-toggle button.active{ color: var(--cyan); border-color: var(--cyan); }
+
+  label{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 10.5px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--muted);
+    display:block;
+    margin-bottom: 6px;
+  }
+
+  input[type=file]{
+    width:100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--muted);
+    padding: 9px 10px;
+    border-radius: 6px;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11.5px;
+  }
+  input[type=file]::file-selector-button{
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: var(--text);
+    border-radius: 5px;
+    padding: 5px 10px;
+    margin-right: 10px;
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    cursor: pointer;
+  }
+  input[type=file]::file-selector-button:hover{ border-color: #3a4452; }
+
+  input[type=text], input[type=url], textarea{
+    width:100%;
+    background: var(--panel-2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 10px 11px;
+    border-radius: 6px;
+    font-family:'Inter', sans-serif;
+    font-size: 13.5px;
+  }
+  textarea{ resize: vertical; min-height: 64px; }
+
+  .field{ display:flex; flex-direction:column; }
+
+  .btn{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 12px; letter-spacing:0.05em; text-transform:uppercase;
+    padding: 10px 14px;
+    border-radius: 6px;
+    border: 1px solid var(--border);
+    background: var(--panel-2);
+    color: var(--text);
+    cursor:pointer;
+  }
+  .btn:hover{ border-color:#3a4452; }
+  .btn.primary{
+    background: var(--cyan); color:#06090c; border-color: var(--cyan);
+    font-weight:600;
+  }
+  .btn.primary:hover{ filter: brightness(1.08); }
+  .btn.small{ padding:7px 10px; font-size:11px; }
+  .btn[disabled]{ opacity:0.5; cursor:not-allowed; }
+
+  .preview-box{
+    border:1px dashed var(--border);
+    border-radius:8px;
+    padding: 10px;
+    display:flex; gap:10px; align-items:center;
+    font-size:12px; color: var(--muted);
+    min-height: 48px;
+  }
+  .preview-box img{ width:64px; height:36px; object-fit:cover; border-radius:4px; }
+
+  hr.sep{ border:none; border-top:1px solid var(--border); margin: 4px 0; }
+
+  .export-box textarea{
+    font-family:'JetBrains Mono', monospace;
+    font-size: 11px;
+    min-height: 120px;
+    color: var(--muted);
+  }
+
+  .hint{
+    font-size: 11.5px;
+    color: var(--muted);
+    line-height:1.5;
+  }
+
+  @media (prefers-reduced-motion: reduce){
+    *{ animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="status-line"><span class="status-dot"></span>SYSTEM ONLINE</div>
+  <h1 class="title">My Projects</h1>
+  <p class="subtitle">genius billionaire playboy philanthropist</p>
+</header>
+
+<div class="filters">
+  <button class="filter-btn active" data-filter="all">All</button>
+  <button class="filter-btn" data-filter="link">Links</button>
+  <button class="filter-btn" data-filter="document">Docs</button>
+</div>
+
+<main>
+  <div class="grid" id="grid"></div>
+</main>
+
+<button class="fab hidden" id="fabBtn" title="Add project" aria-label="Add project">+</button>
+
+<div class="overlay" id="overlay"></div>
+<aside class="panel" id="panel" aria-label="Add project panel">
+  <div class="panel-head">
+    <h2>Add to collection</h2>
+    <button class="panel-close" id="panelClose" aria-label="Close">&times;</button>
+  </div>
+  <div class="panel-body">
+
+    <div class="type-toggle">
+      <button type="button" id="typeLinkBtn" class="active">Link</button>
+      <button type="button" id="typeDocBtn">Docs</button>
+    </div>
+
+    <div class="field">
+      <label for="inTitle">Title</label>
+      <input type="text" id="inTitle" placeholder="e.g. RUNSHEET">
+    </div>
+
+    <div class="field" id="urlField">
+      <label for="inUrl">Page URL</label>
+      <input type="url" id="inUrl" placeholder="https://yourname.github.io/project">
+    </div>
+
+    <div class="field" id="docField" style="display:none">
+      <label for="inDocFile">Upload from your device (screenshot, photo, or saved file)</label>
+      <input type="file" id="inDocFile">
+      <div class="preview-box" id="docPreviewBox" style="margin-top:10px;">No file selected</div>
+      <label for="inDocUrl" style="margin-top:12px">— or link to a URL / repo path instead</label>
+      <input type="text" id="inDocUrl" placeholder="docs/manuscript.pdf">
+    </div>
+
+    <div class="field">
+      <label for="inDesc">Description (optional)</label>
+      <textarea id="inDesc" placeholder="Leave blank to auto-fetch for links"></textarea>
+    </div>
+
+    <div id="fetchRow" class="field">
+      <label>Preview thumbnail</label>
+      <button class="btn small" id="fetchBtn" type="button">Fetch preview from URL</button>
+      <div class="preview-box" id="previewBox" style="margin-top:10px;">No preview fetched yet</div>
+      <label for="inLinkImageFile" style="margin-top:12px">— or upload your own image instead</label>
+      <input type="file" id="inLinkImageFile" accept="image/*">
+      <div class="preview-box" id="linkImagePreviewBox" style="margin-top:10px;">No custom image selected</div>
+    </div>
+
+    <button class="btn primary" id="addBtn">Add to list</button>
+
+    <hr class="sep">
+
+    <div class="field export-box">
+      <label>Export current data (paste into DATA constant to publish)</label>
+      <textarea id="exportBox" readonly></textarea>
+      <button class="btn small" id="copyBtn" style="margin-top:8px;">Copy JSON</button>
+    </div>
+
+    <p class="hint">
+      This panel only appears when you open the page with your private
+      <code>?admin=</code> URL — bookmark that link so it's just a click away.
+      Additions here only live in this browser tab. To make them visible to
+      everyone: copy the JSON above, paste it over the <code>DATA</code>
+      constant near the top of this file's source, then commit and push to
+      your GitHub Pages repo. Files uploaded from your device are embedded
+      directly in that JSON as base64 (no separate repo upload needed) — but
+      every embedded file gets downloaded in full by every visitor on every
+      visit, even ones they never open, because it's baked into the page's
+      HTML rather than fetched as a separate cacheable file. On mobile this
+      adds up fast. Keep embedded uploads small (a few hundred KB, not MB).
+      For anything bigger — PDFs, manuscripts, high-res images — use the
+      URL/path option and host the actual file in your repo (e.g.
+      <code>docs/manuscript.pdf</code>) or elsewhere; the browser will only
+      fetch it when a visitor actually clicks it.
+    </p>
+  </div>
+</aside>
+
+<script>
+  // ------------------------------------------------------------
+  // DATA — this is what every visitor sees. Replace via the
+  // admin panel's "Copy JSON" workflow, or edit directly.
+  // ------------------------------------------------------------
+  // ------------------------------------------------------------
+  // ADMIN ACCESS — the add (+) button is hidden from regular
+  // visitors by default. Instead of storing your secret key as
+  // plain text (which anyone could read via view-source), this
+  // stores only its SHA-256 hash. Visiting with the right key
+  // still shows the button; the key itself isn't sitting in the
+  // page source for someone to just read off.
+  //
+  // TO SET YOUR OWN KEY:
+  //   1. Open this page once in your browser, open DevTools
+  //      console, and run:
+  //        crypto.subtle.digest('SHA-256', new TextEncoder().encode('YOUR_SECRET_HERE'))
+  //          .then(b => console.log([...new Uint8Array(b)].map(x => x.toString(16).padStart(2,'0')).join('')))
+  //   2. Copy the hex string it prints and paste it below as
+  //      ADMIN_KEY_HASH.
+  //   3. Bookmark: yoursite.com/my-projects.html?admin=YOUR_SECRET_HERE
+  //
+  // IMPORTANT — read this so expectations are right:
+  // This only controls whether the (+) button is visible in YOUR
+  // browser tab. It does not, and cannot, let anyone actually
+  // change the published site — nothing added here is saved
+  // anywhere; it only lives in that tab's memory until you
+  // manually copy the JSON and push it to your GitHub repo (see
+  // the publishing note further down). So the real lock on "only
+  // I can change the site" is who has push access to your GitHub
+  // repo, not this key. If your repo is public, anyone can read
+  // this hash, but a SHA-256 hash can't be reversed back into the
+  // original phrase for any reasonably long/random secret — so
+  // pick something long and not reused elsewhere, not a short
+  // dictionary word.
+  // ------------------------------------------------------------
+  const ADMIN_KEY_HASH = '224f432a43862a61cc76237f3c5a6ddacfa6fdcfe23d2d875fb039874e957655';
+
+  async function hasAdminAccess(){
+    const params = new URLSearchParams(window.location.search);
+    const key = params.get('admin');
+    if(!key) return false;
+    const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(key));
+    const hex = [...new Uint8Array(digest)].map(b => b.toString(16).padStart(2,'0')).join('');
+    return hex === ADMIN_KEY_HASH;
+  }
+
+  const DATA = [
+  {
+    "id": "e1784058585900",
+    "type": "link",
+    "title": "RUNSHEET",
+    "url": "https://runsheet.website/",
+    "description": "Vitals/Symptoms/Impression -> Medication/Treatment/Diagnosis (Paramedic Scope)",
+    "image": "images/runsheet-thumb.webp",
+    "hostname": "runsheet.website"
+  },
+  {
+    "id": "e1784058633894",
+    "type": "link",
+    "title": "MYCALORIES",
+    "url": "http://mycalories.fitness/",
+    "description": "Fitness Tracker/Goal & Calorie Calculator (AI BodyFat Predictor)",
+    "image": "images/mycalories-thumb.webp",
+    "hostname": "mycalories.fitness"
+  },
+  {
+    "id": "e1784058722280",
+    "type": "link",
+    "title": "RUNSHEET: Development of a Self-Contained, Browser-Based Reference Tool for Medication Reconstitution and Clinical Reasoning in Paramedic Education",
+    "url": "https://docs.google.com/document/d/e/2PACX-1vRSQYodCBsF3FbPb8U9pxLkakMhAuOG3sgs1TrYKfWFTIDNTWI1opj6vaoubjICXT29zpgppfiK6a4F/pub",
+    "description": "JMIR Formative Manual Script Submission",
+    "image": "images/jmir-formative-thumb.webp",
+    "hostname": "docs.google.com"
+  },
+  {
+    "id": "e1784058761458",
+    "type": "link",
+    "title": "JMIR Formative Manual Link",
+    "url": "https://accounts.jmir.pub/?redirectTo=https%3A%2F%2Fmededu.jmir.org%2Fauthor%2Fsubmission%2F106663%3F_gl%3D1%2Avy19bf%2A_up%2AMQ..%2A_gs%2AMQ..",
+    "description": "Link",
+    "image": "images/jmir-submission-thumb.webp",
+    "hostname": "accounts.jmir.pub"
+  },
+  {
+    "id": "e1784058868586",
+    "type": "link",
+    "title": "Development of an Interactive Medication Reconstitution Reference Website for Paramedic Education (Draft)",
+    "url": "https://docs.google.com/document/d/e/2PACX-1vQ21TgZxF6KhZAk9xZ_4pWRZMIgjrvqfnvrb2v0dmRDQlBAcSoFbwQR1EH5RvUveJ7OcWDSnVg8csHU/pub",
+    "description": "Pre Submission JMIR",
+    "image": "images/jmir-presubmission-thumb.webp",
+    "hostname": "docs.google.com"
+  }
+];
+
+  let entries = JSON.parse(JSON.stringify(DATA));
+  let currentFilter = 'all';
+  let currentType = 'link';
+  let lastPreview = null;
+
+  const grid = document.getElementById('grid');
+  const fab = document.getElementById('fabBtn');
+  const overlay = document.getElementById('overlay');
+  const panel = document.getElementById('panel');
+  const panelClose = document.getElementById('panelClose');
+  const typeLinkBtn = document.getElementById('typeLinkBtn');
+  const typeDocBtn = document.getElementById('typeDocBtn');
+  const urlField = document.getElementById('urlField');
+  const docField = document.getElementById('docField');
+  const fetchRow = document.getElementById('fetchRow');
+  const previewBox = document.getElementById('previewBox');
+  const linkImagePreviewBox = document.getElementById('linkImagePreviewBox');
+  const docPreviewBox = document.getElementById('docPreviewBox');
+  const exportBox = document.getElementById('exportBox');
+
+  let pendingDocData = null;     // { dataUrl, name, ext }
+  let pendingLinkImage = null;   // { dataUrl, name } — custom thumbnail override for links
+
+  const IMAGE_EXTS = ['jpg','jpeg','png','gif','webp','svg','bmp','heic'];
+  const VIEWABLE_EXTS = [...IMAGE_EXTS, 'pdf']; // browsers can display these inline; others get forced to download
+
+  function readFileAsDataURL(file){
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result);
+      reader.onerror = () => reject(reader.error);
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Converts an embedded data: URL into a Blob. Needed because clicking a
+  // link straight to a data: URL is blocked by Chrome/Chromium as a
+  // top-level navigation for security reasons — that's why embedded
+  // documents wouldn't open. Blob URLs (blob:...) don't have this problem.
+  function dataURLtoBlob(dataUrl){
+    const [header, base64] = dataUrl.split(',');
+    const mimeMatch = header.match(/data:(.*?);base64/);
+    const mime = mimeMatch ? mimeMatch[1] : 'application/octet-stream';
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for(let i = 0; i < binary.length; i++){ bytes[i] = binary.charCodeAt(i); }
+    return new Blob([bytes], { type: mime });
+  }
+
+  const blobUrlCache = new Map();
+
+  // Returns a URL that's safe to put in an href. Regular http(s)/path URLs
+  // are returned as-is; embedded data: URLs are converted to a blob: URL
+  // once per entry and cached.
+  function getOpenUrl(entry){
+    if(!entry.url || !entry.url.startsWith('data:')) return entry.url;
+    if(blobUrlCache.has(entry.id)) return blobUrlCache.get(entry.id);
+    const objUrl = URL.createObjectURL(dataURLtoBlob(entry.url));
+    blobUrlCache.set(entry.id, objUrl);
+    return objUrl;
+  }
+
+  function slugify(str){
+    return (str || 'file').trim().replace(/[^a-z0-9\-_. ]/gi, '').replace(/\s+/g, '-') || 'file';
+  }
+
+  function iconForExt(ext){
+    const map = { pdf:'PDF', doc:'DOC', docx:'DOC', xls:'XLS', xlsx:'XLS', ppt:'PPT', pptx:'PPT', txt:'TXT', csv:'CSV' };
+    return map[ext] || 'FILE';
+  }
+
+  function extOf(url){
+    const clean = url.split('?')[0].split('#')[0];
+    const parts = clean.split('.');
+    return parts.length > 1 ? parts.pop().toLowerCase() : '';
+  }
+
+  function hostnameOf(url){
+    try{ return new URL(url).hostname.replace('www.',''); }
+    catch(e){ return ''; }
+  }
+
+  function render(){
+    const visible = entries.filter(e => currentFilter === 'all' || e.type === currentFilter);
+    grid.innerHTML = '';
+
+    if(visible.length === 0){
+      grid.innerHTML = `<div class="empty-state" style="grid-column:1/-1">
+        No projects yet.<span class="arrow">&darr;</span>Click the + button to add your first link, image, or document.
+      </div>`;
+      updateExportBox();
+      return;
+    }
+
+    visible.forEach(e => {
+      const card = document.createElement('div');
+      card.className = 'card';
+
+      const brackets = `
+        <span class="bracket tl"></span><span class="bracket tr"></span>
+        <span class="bracket bl"></span><span class="bracket br"></span>`;
+
+      if(e.type === 'link'){
+        card.innerHTML = `
+          ${brackets}
+          <a class="open-link" href="${e.url}" target="_blank" rel="noopener noreferrer">
+            <div class="thumb">
+              ${e.image ? `<img src="${e.image}" alt="" loading="lazy" decoding="async">` : '&#127760;'}
+            </div>
+            <div class="card-body">
+              <div class="eyebrow link">Link</div>
+              <h3>${escapeHtml(e.title)}</h3>
+              <p class="desc">${escapeHtml(e.description || '')}</p>
+              <div class="meta">
+                <span>${escapeHtml(e.hostname || hostnameOf(e.url))}</span>
+                <button class="delete-btn" data-id="${e.id}">remove</button>
+              </div>
+            </div>
+          </a>`;
+      } else {
+        const ext = e.ext || extOf(e.url);
+        const isImage = IMAGE_EXTS.includes(ext);
+        const openUrl = getOpenUrl(e);
+        const viewable = VIEWABLE_EXTS.includes(ext);
+        const downloadAttr = viewable ? '' : ` download="${slugify(e.title)}${ext ? '.' + ext : ''}"`;
+        card.innerHTML = `
+          ${brackets}
+          <a class="open-link" href="${openUrl}" target="_blank" rel="noopener noreferrer"${downloadAttr}>
+            ${isImage
+              ? `<div class="thumb"><img src="${openUrl}" alt="" loading="lazy" decoding="async"></div>`
+              : `<div class="doc-badge">${iconForExt(ext)}</div>`}
+            <div class="card-body">
+              <div class="eyebrow document">Docs</div>
+              <h3>${escapeHtml(e.title)}</h3>
+              <p class="desc">${escapeHtml(e.description || '')}</p>
+              <div class="meta">
+                <span>${ext ? ext.toUpperCase() : 'FILE'}</span>
+                <button class="delete-btn" data-id="${e.id}">remove</button>
+              </div>
+            </div>
+          </a>`;
+      }
+      grid.appendChild(card);
+    });
+
+    grid.querySelectorAll('.delete-btn').forEach(btn => {
+      btn.addEventListener('click', (ev) => {
+        ev.preventDefault();
+        ev.stopPropagation();
+        entries = entries.filter(e => e.id !== btn.dataset.id);
+        render();
+      });
+    });
+
+    updateExportBox();
+  }
+
+  function escapeHtml(str){
+    const div = document.createElement('div');
+    div.textContent = str || '';
+    return div.innerHTML;
+  }
+
+  function updateExportBox(){
+    exportBox.value = JSON.stringify(entries, null, 2);
+  }
+
+  // filters
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentFilter = btn.dataset.filter;
+      render();
+    });
+  });
+
+  // admin panel open/close
+  function openPanel(){ overlay.classList.add('open'); panel.classList.add('open'); }
+  function closePanel(){ overlay.classList.remove('open'); panel.classList.remove('open'); }
+  fab.addEventListener('click', openPanel);
+  panelClose.addEventListener('click', closePanel);
+  overlay.addEventListener('click', closePanel);
+
+  // type toggle
+  function setType(type){
+    currentType = type;
+    typeLinkBtn.classList.toggle('active', type === 'link');
+    typeDocBtn.classList.toggle('active', type === 'document');
+    urlField.style.display = type === 'link' ? 'flex' : 'none';
+    docField.style.display = type === 'document' ? 'flex' : 'none';
+    fetchRow.style.display = type === 'link' ? 'flex' : 'none';
+    lastPreview = null;
+    previewBox.innerHTML = 'No preview fetched yet';
+    pendingLinkImage = null;
+    linkImagePreviewBox.innerHTML = 'No custom image selected';
+  }
+  typeLinkBtn.addEventListener('click', () => setType('link'));
+  typeDocBtn.addEventListener('click', () => setType('document'));
+
+  // handle custom thumbnail upload for links (overrides the fetched preview image)
+  document.getElementById('inLinkImageFile').addEventListener('change', async (ev) => {
+    const file = ev.target.files[0];
+    if(!file) return;
+    linkImagePreviewBox.textContent = 'Reading file…';
+    try{
+      const dataUrl = await readFileAsDataURL(file);
+      pendingLinkImage = { dataUrl, name: file.name };
+      linkImagePreviewBox.innerHTML = `<img src="${dataUrl}" alt=""><span>${escapeHtml(file.name)}</span>`;
+    } catch(err){
+      linkImagePreviewBox.textContent = 'Could not read that file.';
+      pendingLinkImage = null;
+    }
+  });
+
+  // handle document file selection (images, screenshots, or any saved file)
+  document.getElementById('inDocFile').addEventListener('change', async (ev) => {
+    const file = ev.target.files[0];
+    if(!file) return;
+    docPreviewBox.textContent = 'Reading file…';
+    try{
+      const dataUrl = await readFileAsDataURL(file);
+      pendingDocData = { dataUrl, name: file.name, ext: extOf(file.name) };
+      docPreviewBox.innerHTML = `<span>${escapeHtml(file.name)} selected</span>`;
+      if(!document.getElementById('inTitle').value){
+        document.getElementById('inTitle').value = file.name.replace(/\.[^.]+$/, '');
+      }
+    } catch(err){
+      docPreviewBox.textContent = 'Could not read that file.';
+      pendingDocData = null;
+    }
+  });
+
+  // fetch preview via microlink
+  document.getElementById('fetchBtn').addEventListener('click', async () => {
+    const url = document.getElementById('inUrl').value.trim();
+    if(!url){ previewBox.textContent = 'Enter a URL first.'; return; }
+    previewBox.textContent = 'Fetching preview…';
+    try{
+      const res = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
+      const json = await res.json();
+      if(json.status === 'success'){
+        const d = json.data;
+        lastPreview = {
+          image: d.image?.url || d.screenshot?.url || '',
+          description: d.description || '',
+          title: d.title || '',
+          hostname: hostnameOf(url)
+        };
+        previewBox.innerHTML = `
+          ${lastPreview.image ? `<img src="${lastPreview.image}" alt="">` : ''}
+          <span>${escapeHtml(lastPreview.title || 'Preview fetched')}</span>`;
+        if(!document.getElementById('inTitle').value && lastPreview.title){
+          document.getElementById('inTitle').value = lastPreview.title;
+        }
+        if(!document.getElementById('inDesc').value && lastPreview.description){
+          document.getElementById('inDesc').value = lastPreview.description;
+        }
+      } else {
+        previewBox.textContent = 'Could not fetch a preview — you can still add the link manually.';
+      }
+    } catch(err){
+      previewBox.textContent = 'Preview fetch failed (network/CORS). You can still add the link manually.';
+    }
+  });
+
+  // add entry
+  document.getElementById('addBtn').addEventListener('click', () => {
+    const title = document.getElementById('inTitle').value.trim();
+    const desc = document.getElementById('inDesc').value.trim();
+
+    if(!title){ alert('Give it a title first.'); return; }
+
+    if(currentType === 'link'){
+      const url = document.getElementById('inUrl').value.trim();
+      if(!url){ alert('Enter a URL.'); return; }
+      entries.push({
+        id: 'e' + Date.now(),
+        type: 'link',
+        title,
+        url,
+        description: desc || (lastPreview ? lastPreview.description : ''),
+        image: pendingLinkImage ? pendingLinkImage.dataUrl : (lastPreview ? lastPreview.image : ''),
+        hostname: hostnameOf(url)
+      });
+      document.getElementById('inUrl').value = '';
+      document.getElementById('inLinkImageFile').value = '';
+      pendingLinkImage = null;
+      linkImagePreviewBox.innerHTML = 'No custom image selected';
+
+    } else {
+      const manualUrl = document.getElementById('inDocUrl').value.trim();
+      if(pendingDocData){
+        entries.push({
+          id: 'e' + Date.now(),
+          type: 'document',
+          title,
+          url: pendingDocData.dataUrl,
+          description: desc,
+          ext: pendingDocData.ext
+        });
+        document.getElementById('inDocFile').value = '';
+        docPreviewBox.innerHTML = 'No file selected';
+        pendingDocData = null;
+      } else if(manualUrl){
+        entries.push({
+          id: 'e' + Date.now(),
+          type: 'document',
+          title,
+          url: manualUrl,
+          description: desc,
+          ext: extOf(manualUrl)
+        });
+        document.getElementById('inDocUrl').value = '';
+      } else {
+        alert('Upload a file or enter a document URL/path.');
+        return;
+      }
+    }
+
+    document.getElementById('inTitle').value = '';
+    document.getElementById('inDesc').value = '';
+    lastPreview = null;
+    previewBox.innerHTML = 'No preview fetched yet';
+    render();
+  });
+
+  // copy JSON
+  document.getElementById('copyBtn').addEventListener('click', () => {
+    exportBox.select();
+    navigator.clipboard.writeText(exportBox.value).then(() => {
+      const btn = document.getElementById('copyBtn');
+      const old = btn.textContent;
+      btn.textContent = 'Copied!';
+      setTimeout(() => btn.textContent = old, 1400);
+    });
+  });
+
+  hasAdminAccess().then(ok => {
+    if(ok) fab.classList.remove('hidden');
+  });
+
+  render();
+</script>
+
+</body>
+</html>
